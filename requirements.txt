@@ -1,0 +1,10 @@
+fastapi
+uvicorn
+pydantic-settings
+loguru
+pandas
+numpy
+python-multipart
+celery
+redis
+sqlalchemy
