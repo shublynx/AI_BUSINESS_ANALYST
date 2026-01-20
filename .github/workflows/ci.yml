@@ -29,7 +29,7 @@ jobs:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
       POSTGRES_DB: ai_business_analyst
-      POSTGRES_HOST: postgres   # ✅ IMPORTANT: service name, NOT localhost
+      POSTGRES_HOST: postgres
       POSTGRES_PORT: 5432
 
     steps:
@@ -54,4 +54,5 @@ jobs:
         run: |
           python - <<EOF
           import app
-          print("App imported succe
+          print("✅ App imported successfully")
+          EOF
