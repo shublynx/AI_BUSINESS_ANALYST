@@ -11,6 +11,18 @@ from dotenv import load_dotenv
 load_dotenv()  # loads .env into environment variables
 
 def get_database_url():
+    required_vars = [
+        "POSTGRES_USER",
+        "POSTGRES_PASSWORD",
+        "POSTGRES_HOST",
+        "POSTGRES_PORT",
+        "POSTGRES_DB",
+    ]
+
+    missing = [v for v in required_vars if not os.getenv(v)]
+    if missing:
+        raise RuntimeError(f"Missing DB environment variables: {missing}")
+
     return (
         f"postgresql+psycopg2://"
         f"{os.getenv('POSTGRES_USER')}:"
@@ -19,6 +31,7 @@ def get_database_url():
         f"{os.getenv('POSTGRES_PORT')}/"
         f"{os.getenv('POSTGRES_DB')}"
     )
+
 
 
 # this is the Alembic Config object, which provides
