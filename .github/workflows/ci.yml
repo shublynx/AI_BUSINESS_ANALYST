@@ -2,11 +2,9 @@ name: CI
 
 on:
   push:
-    branches:
-      - main
+    branches: [main]
   pull_request:
-    branches:
-      - main
+    branches: [main]
 
 jobs:
   backend-check:
@@ -19,9 +17,11 @@ jobs:
           POSTGRES_USER: postgres
           POSTGRES_PASSWORD: postgres
           POSTGRES_DB: ai_business_analyst
+        ports:
+          - 5432:5432
         options: >-
-          --health-cmd "pg_isready -U postgres -d ai_business_analyst"
-          --health-interval 10s
+          --health-cmd "pg_isready -h localhost -U postgres -d ai_business_analyst"
+          --health-interval 5s
           --health-timeout 5s
           --health-retries 10
 
@@ -46,6 +46,13 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
+      - name: Wait for Postgres
+        run: |
+          until pg_isready -h localhost -p 5432 -U postgres; do
+            echo "Waiting for postgres..."
+            sleep 2
+          done
+
       - name: Run Alembic migrations
         run: |
           alembic upgrade head
@@ -54,5 +61,5 @@ jobs:
         run: |
           python - <<EOF
           import app
-          print("✅ App imported successfully")
+          print("App imported successfully")
           EOF
