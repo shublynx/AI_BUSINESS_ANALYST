@@ -7,6 +7,8 @@ from sqlalchemy.orm import Session
 from app.db import SessionLocal
 from app.models.dataset import Dataset
 
+from app.workers.process_dataset import process_dataset  # Import the background task
+
 UPLOAD_DIR = "storage/uploads"  # Directory to store uploaded files
 
 router = APIRouter(
@@ -58,6 +60,10 @@ def upload_dataset(
         db.add(dataset)              # Stage the dataset object
         db.commit()                  # Persist the transaction
         db.refresh(dataset)          # Load generated fields (id, timestamps)
+
+        # Start dataset processing in the background
+        process_dataset.delay(dataset.id)
+        
     finally:
         db.close()                   # Always release DB connection
 
