@@ -1,42 +1,66 @@
-from celery.utils.log import get_task_logger
-from app.workers.celery_app import celery_app
+import os
+import pandas as pd
+
+from sqlalchemy.orm import Session
 from app.db import SessionLocal
 from app.models.dataset import Dataset
+from app.workers.celery_app import celery_app
+from app.core.data_utils import normalize_column
+from app.core.metadata import extract_metadata
 
-logger = get_task_logger(__name__)
+UPLOAD_DIR = "storage/uploads"
 
 
-@celery_app.task(bind=True, autoretry_for=(Exception,), retry_backoff=5, retry_kwargs={"max_retries": 3})
+@celery_app.task(
+    bind=True,
+    autoretry_for=(Exception,),
+    retry_backoff=5,
+    retry_kwargs={"max_retries": 3},
+)
 def process_dataset(self, dataset_id: str):
-    """
-    Background task that processes an uploaded dataset.
-    """
+    db: Session = SessionLocal()
 
-    db = SessionLocal()  # Open DB session
     try:
         dataset = db.query(Dataset).filter(Dataset.id == dataset_id).first()
-
         if not dataset:
-            logger.error(f"Dataset not found: {dataset_id}")
-            return
+            raise ValueError(f"Dataset {dataset_id} not found")
 
-        dataset.status = "processing"   # Mark job as started
+        # 1️⃣ Transition to processing
+        dataset.status = "processing"
         db.commit()
 
-        # ---- SIMULATED WORK (placeholder) ----
-        # Later: CSV parsing, cleaning, EDA, embeddings
-        import time
-        time.sleep(3)
-        # --------------------------------------
+        # 2️⃣ Load file
+        file_path = os.path.join(UPLOAD_DIR, dataset.filename)
 
-        dataset.status = "completed"    # Mark job as completed
+        if dataset.filename.endswith(".csv"):
+            df = pd.read_csv(file_path)
+        elif dataset.filename.endswith(".xlsx"):
+            df = pd.read_excel(file_path)
+        else:
+            raise ValueError("Unsupported file format")
+
+        # 3️⃣ Normalize column names
+        original_columns = df.columns.tolist()
+        df.columns = [normalize_column(c) for c in df.columns]
+
+        # 4️⃣ Extract metadata AFTER normalization
+        metadata = extract_metadata(df)
+
+        # Optional debug logging
+        print("Original columns:", original_columns)
+        print("Normalized columns:", df.columns.tolist())
+
+        # 5️⃣ Persist results
+        dataset.dataset_metadata = metadata
+        dataset.status = "completed"
         db.commit()
 
-    except Exception as e:
-        dataset.status = "failed"       # Mark job as failed
-        dataset.error_message = str(e)  # Store failure reason
-        db.commit()
-        raise                            # Triggers retry
+    except Exception as exc:
+        db.rollback()
+        if "dataset" in locals():
+            dataset.status = "failed"
+            db.commit()
+        raise exc
 
     finally:
-        db.close()                      # Release DB connection
+        db.close()

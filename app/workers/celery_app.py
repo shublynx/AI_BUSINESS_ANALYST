@@ -14,3 +14,8 @@ celery_app.conf.update(
     result_serializer="json",
     accept_content=["json"],
 )
+
+# Autodiscover tasks from the 'app.workers' module
+celery_app.autodiscover_tasks([
+    "app.workers.process_dataset"
+])

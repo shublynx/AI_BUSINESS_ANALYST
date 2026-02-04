@@ -1,7 +1,7 @@
-import uuid
-from sqlalchemy import Column, String, DateTime, Text
-from app.db import Base
+from sqlalchemy import Column, String, DateTime, JSON
 from datetime import datetime, timezone
+import uuid
+from app.db import Base
 
 
 class Dataset(Base):
@@ -9,12 +9,9 @@ class Dataset(Base):
 
     id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
     filename = Column(String, nullable=False)
-
-    # ingestion lifecycle
     status = Column(String, nullable=False, default="uploaded")
 
-    # error visibility (important for debugging + UI)
-    error_message = Column(Text, nullable=True)
+    dataset_metadata = Column(JSON, nullable=True)  # ✅ renamed
 
     created_at = Column(
         DateTime,
@@ -23,5 +20,5 @@ class Dataset(Base):
     updated_at = Column(
         DateTime,
         default=lambda: datetime.now(timezone.utc).replace(tzinfo=None),
-        onupdate=lambda: datetime.now(timezone.utc).replace(tzinfo=None)
+        onupdate=lambda: datetime.now(timezone.utc).replace(tzinfo=None),
     )
