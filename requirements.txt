@@ -15,4 +15,5 @@ celery
 redis
 streamlit
 requests
+openai
 

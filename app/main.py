@@ -11,6 +11,7 @@ from fastapi import FastAPI
 from app.config import settings
 from app.core.logging import get_logger
 from app.api.datasets import router as datasets_router
+from app.api.query import router as query_router
 
 
 logger = get_logger()
@@ -27,3 +28,4 @@ async def health():
 
 # Include dataset-related API routes
 app.include_router(datasets_router)
+app.include_router(query_router)
